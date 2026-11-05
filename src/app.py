@@ -23,7 +23,7 @@ def main(page: ft.Page):
     input_max_len = ft.TextField(label="Longitud máxima (n)", value="2")
     txt_kleene = ft.Text("Sigma*: -")
     txt_positiva = ft.Text("Sigma+: -")
-    txt_error = ft.Text("", color=ft.colors.RED)
+    txt_error = ft.Text("", color="red")
 
     def operacion_cerraduras(e):
         txt_error.value = ""
@@ -55,7 +55,7 @@ def main(page: ft.Page):
     page.add(
         ft.Text("Operación 1: Prefijos, Sufijos y Subcadenas", size=20, weight=ft.FontWeight.BOLD),
         input_cadena,
-        ft.ElevatedButton("Calcular sobre cadena", on_click=operacion_cadenas),
+        ft.Button("Calcular sobre cadena", on_click=operacion_cadenas),
         txt_prefijos,
         txt_sufijos,
         txt_subcadenas,
@@ -63,10 +63,10 @@ def main(page: ft.Page):
         ft.Text("Operación 2: Cerradura de Kleene y Positiva", size=20, weight=ft.FontWeight.BOLD),
         input_alfabeto,
         input_max_len,
-        ft.ElevatedButton("Calcular cerraduras", on_click=operacion_cerraduras),
+        ft.Button("Calcular cerraduras", on_click=operacion_cerraduras),
         txt_error,
         txt_kleene,
         txt_positiva,
     )
 
-ft.app(target=main)
+ft.run(main)
