@@ -1,27 +1,30 @@
-# Teoria_de_la_computacion
 # Práctica 1 - Teoría de la Computación
 
-**Nombre completo:** Garduño Ibarra Uriel
-**Boleta:** 2024630286
-**Grupo:** 4CM2
-**Carrera:** Ingeniería en Computación
+**Nombre completo:** Garduño Ibarra Uriel  
+**Boleta:** 2024630286  
+**Grupo:** 4CM2  
+**Carrera:** Ingeniería en Computación  
 
 ---
 
-## Índice de la práctica
-1. Descripción del problema
-2. Requisitos e instalación
-3. Estructura de archivos
-4. Instrucciones de ejecución
-## Descripción
-Práctica enfocada en la gestión de repositorios y conceptos de Teoría de la Computación.
+## Índice del reporte
 
-## Requisitos
-- Python 3.x
-- Git
+1. [Ejercicio 1: Entorno de Trabajo](docs/01-entorno.md)
+2. [Ejercicio 2: Investigación - Teoría de la Computación](docs/02-investigacion.md)
+3. [Ejercicio 3: Estado del Arte](docs/03-estado-del-arte.md)
+4. [Ejercicio 4: Autómatas en JFLAP](docs/04-jflap.md)
+5. [Ejercicio 5: Aplicación Gráfica](docs/05-aplicacion.md)
+6. [Conclusiones](conclusiones.md)
+7. [Bibliografía](bibliografia.md)
 
-## Ejecucion
-Ejecutar los scripts desde la linea de comandos.
+---
 
+## Instrucciones para ejecutar el entorno y pruebas
 
-*Nota: Entregable completado.*
+### Requisitos
+- Docker y Docker Compose V2
+
+### 1. Construir las imágenes
+```bash
+cd entorno
+docker compose build
