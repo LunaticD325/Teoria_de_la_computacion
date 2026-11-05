@@ -19,3 +19,6 @@ Práctica enfocada en la gestión de repositorios y conceptos de Teoría de la C
 ## Requisitos
 - Python 3.x
 - Git
+
+## Ejecucion
+Ejecutar los scripts desde la linea de comandos.
