@@ -15,3 +15,7 @@
 4. Instrucciones de ejecución
 ## Descripción
 Práctica enfocada en la gestión de repositorios y conceptos de Teoría de la Computación.
+
+## Requisitos
+- Python 3.x
+- Git
