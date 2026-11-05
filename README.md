@@ -22,3 +22,6 @@ Práctica enfocada en la gestión de repositorios y conceptos de Teoría de la C
 
 ## Ejecucion
 Ejecutar los scripts desde la linea de comandos.
+
+
+*Nota: Entregable completado.*
