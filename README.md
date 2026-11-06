@@ -1,28 +1,50 @@
-# Práctica 3 - Teoría de la Computación
+# Teoría de la Computación
 
 **Nombre completo:** Garduño Ibarra Uriel  
 **Boleta:** 2024630286  
 **Grupo:** 4CM2  
 **Carrera:** Ingeniería en Computación  
+**Institución:** Escuela Superior de Cómputo - Instituto Politécnico Nacional  
 
 ---
 
-## Índice del reporte
+## Índice General de Prácticas
 
-1. [Ejercicio 1: Conversión de AFD a Expresiones Regulares en JFLAP](docs/practica3/01-afd-a-er-jflap.md)
-2. [Ejercicio 2: Extensión del Software Interactivo](docs/practica3/02-software.md)
-3. [Ejercicio 3: Documentación Teórica y Análisis de Algoritmos](docs/practica3/03-algoritmos.md)
-4. [Conclusiones](conclusiones.md)
-5. [Bibliografía](bibliografia.md)
+1. **[Práctica 3 - Algoritmos de Autómatas y Software Interactivo](docs/practica3/01-afd-a-er-jflap.md)**
+   * [Documentación Teórica y Análisis de Algoritmos](docs/practica3/03-algoritmos.md)
+   * [Extensión del Software Interactivo](docs/practica3/02-software.md)
+2. **[Práctica 4 - Uso de Expresiones Regulares y Extensión de Software](docs/practica4/01-investigacion.md)**
+   * [Ejercicio 1: Investigación sobre Expresiones Regulares](docs/practica4/01-investigacion.md)
+   * [Ejercicios 2, 3 y 4: Software Interactivo, Algoritmos y Validadores](docs/practica4/02-software-er.md)
 
 ---
 
-### Instrucciones para ejecutar el entorno y pruebas
+## Práctica 4: Especificaciones Técnicas
+
+### Notación Aceptada por el Analizador de ER
+El motor de expresiones regulares acepta la notación estándar del curso respetando la jerarquía de operadores (Cerradura $>$ Concatenación $>$ Unión):
+
+* **Unión:** Símbolo `+` (ejemplo: `a+b`)
+* **Concatenación:** Yuxtaposición explícita o implícita (ejemplo: `ab`)
+* **Cerradura de Kleene:** Símbolo `*` (ejemplo: `a*`)
+* **Agrupación y Precedencia:** Paréntesis `()` (ejemplo: `(a+b)*ab`)
+
+### Validadores del Sistema (Ejercicio 4)
+* **Correo Electrónico:** Formato simplificado basado en RFC 5322 (`user@gmail.com`).
+* **Teléfono Nacional:** Validación a 10 dígitos según la normativa del IFT México.
+* **URL:** Formato de dominio Web HTTP basado en RFC 3986 (`http://domain.com`).
+
+---
+
+## Instrucciones para Ejecutar el Entorno y Pruebas
 
 ### Requisitos
 * Docker y Docker Compose V2
 
-### 1. Construir las imágenes
+### 1. Ejecutar las Pruebas Unitarias (Pytest en CI/CD)
+Para correr la suite completa de pruebas (incluyendo los 500+ casos de congruencia de modelos entre autómatas y el módulo `re`):
+
 ```bash
 cd entorno
-docker compose build
+docker compose run --rm py312 pytest
+cd ..
