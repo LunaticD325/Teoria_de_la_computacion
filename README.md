@@ -10,10 +10,9 @@
 
 ## Índice General de Prácticas
 
-1. **[Práctica 3 - Algoritmos de Autómatas y Software Interactivo](docs/practica3/01-afd-a-er-jflap.md)**
+1. **Práctica 3 - Algoritmos de Autómatas y Software Interactivo**
    * [Documentación Teórica y Análisis de Algoritmos](docs/practica3/03-algoritmos.md)
-   * [Extensión del Software Interactivo](docs/practica3/02-software.md)
-2. **[Práctica 4 - Uso de Expresiones Regulares y Extensión de Software](docs/practica4/01-investigacion.md)**
+2. **Práctica 4 - Uso de Expresiones Regulares y Extensión de Software**
    * [Ejercicio 1: Investigación sobre Expresiones Regulares](docs/practica4/01-investigacion.md)
    * [Ejercicios 2, 3 y 4: Software Interactivo, Algoritmos y Validadores](docs/practica4/02-software-er.md)
 
