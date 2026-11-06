@@ -1,160 +1,180 @@
-import os
 import flet as ft
-from lenguajes import prefijos, sufijos, subcadenas, generar_kleene, generar_positiva
-from automata import Automata
-from formatos import (
-    cargar_jff, guardar_jff,
-    cargar_json, guardar_json,
-    cargar_xml, guardar_xml
-)
+from src.automata import Automata
+import os
 
 def main(page: ft.Page):
-    page.title = "Simulador de Autómatas y Lenguajes"
-    page.scroll = ft.ScrollMode.AUTO
+    page.title = "Simulador de Autómatas - Práctica 3"
+    page.padding = 20
+    page.scroll = "auto"
+    page.theme_mode = ft.ThemeMode.DARK
 
-    automata_actual = None
+    # Estado global del autómata cargado
+    current_automata = [None]
 
-    # --- PESTAÑA 1: Operaciones sobre Cadenas y Lenguajes ---
-    input_cadena = ft.TextField(label="Ingrese una cadena", value="ab")
-    txt_prefijos = ft.Text("Prefijos: -")
-    txt_sufijos = ft.Text("Sufijos: -")
-    txt_subcadenas = ft.Text("Subcadenas: -")
-
-    def operacion_cadenas(e):
-        cad = input_cadena.value
-        txt_prefijos.value = f"Prefijos ({len(prefijos(cad))}): {', '.join(prefijos(cad))}"
-        txt_sufijos.value = f"Sufijos ({len(sufijos(cad))}): {', '.join(sufijos(cad))}"
-        txt_subcadenas.value = f"Subcadenas ({len(subcadenas(cad))}): {', '.join(subcadenas(cad))}"
-        page.update()
-
-    input_alfabeto = ft.TextField(label="Alfabeto (separado por comas)", value="a,b")
-    input_max_len = ft.TextField(label="Longitud máxima (n)", value="2")
-    txt_kleene = ft.Text("Sigma*: -")
-    txt_positiva = ft.Text("Sigma+: -")
-    txt_error_lenguajes = ft.Text("", color="red")
-
-    def operacion_cerraduras(e):
-        txt_error_lenguajes.value = ""
-        alfabeto = [s.strip() for s in input_alfabeto.value.split(",") if s.strip()]
-        try:
-            n = int(input_max_len.value)
-        except ValueError:
-            txt_error_lenguajes.value = "La longitud debe ser un número entero."
-            page.update()
-            return
-
-        k = len(alfabeto)
-        total_estimado = sum(k**i for i in range(n + 1)) if k > 1 else (n + 1)
-        if total_estimado > 200000:
-            txt_error_lenguajes.value = f"Rechazado: generaría {total_estimado:,} cadenas (Límite: 200,000)."
-            page.update()
-            return
-
-        res_k = generar_kleene(alfabeto, n)
-        res_p = generar_positiva(alfabeto, n)
-        txt_kleene.value = f"Sigma* ({len(res_k)}): {', '.join(res_k)}"
-        txt_positiva.value = f"Sigma+ ({len(res_p)}): {', '.join(res_p)}"
-        page.update()
-
-    tab_lenguajes = ft.Column([
-        ft.Text("Operación 1: Prefijos, Sufijos y Subcadenas", size=18, weight=ft.FontWeight.BOLD),
-        input_cadena,
-        ft.Button("Calcular sobre cadena", on_click=operacion_cadenas),
-        txt_prefijos, txt_sufijos, txt_subcadenas,
-        ft.Divider(),
-        ft.Text("Operación 2: Cerradura de Kleene y Positiva", size=18, weight=ft.FontWeight.BOLD),
-        input_alfabeto, input_max_len,
-        ft.Button("Calcular cerraduras", on_click=operacion_cerraduras),
-        txt_error_lenguajes, txt_kleene, txt_positiva
-    ])
-
-    # --- PESTAÑA 2: Simulador de Autómatas ---
-    input_ruta_archivo = ft.TextField(label="Ruta del archivo (.jff, .json, .xml)", value="automata.jff")
-    txt_info_automata = ft.Text("Autómata no cargado.", weight=ft.FontWeight.BOLD)
-    txt_tabla_transiciones = ft.Text("-")
-
-    def cargar_archivo(e):
-        nonlocal automata_actual
-        ruta = input_ruta_archivo.value.strip()
-        if not os.path.exists(ruta):
-            txt_info_automata.value = f"Error: El archivo '{ruta}' no existe."
-            page.update()
-            return
-
-        try:
-            if ruta.endswith(".jff"):
-                automata_actual = cargar_jff(ruta)
-            elif ruta.endswith(".json"):
-                automata_actual = cargar_json(ruta)
-            elif ruta.endswith(".xml"):
-                automata_actual = cargar_xml(ruta)
-            else:
-                txt_info_automata.value = "Formato no soportado (use .jff, .json o .xml)."
-                page.update()
-                return
-
-            txt_info_automata.value = (
-                f"Tipo: {automata_actual.tipo} | Estados: {sorted(list(automata_actual.estados))} | "
-                f"Inicial: {automata_actual.inicial} | Aceptación: {sorted(list(automata_actual.aceptacion))}"
-            )
-            
-            # Construir resumen de transiciones
-            lineas = []
-            for orig, mapa in automata_actual.transiciones.items():
-                for sim, dests in mapa.items():
-                    sim_s = sim if sim else "λ"
-                    lineas.append(f"  δ({orig}, '{sim_s}') -> {sorted(list(dests))}")
-            txt_tabla_transiciones.value = "Transiciones:\n" + "\n".join(lineas)
-        except Exception as err:
-            txt_info_automata.value = f"Error al cargar archivo: {err}"
-        page.update()
-
-    input_cadena_sim = ft.TextField(label="Cadena a simular", value="a")
-    txt_resultado_sim = ft.Text("Resultado: -", size=16, weight=ft.FontWeight.BOLD)
-    txt_traza_sim = ft.Text("Traza de ejecución: -")
-
-    def simular_cadena(e):
-        if not automata_actual:
-            txt_resultado_sim.value = "Error: Primero debe cargar un autómata."
-            page.update()
-            return
-
-        cadena = input_cadena_sim.value
-        aceptada, traza = automata_actual.simular(cadena)
-        txt_resultado_sim.value = f"Resultado: {'ACEPTADA' if aceptada else 'RECHAZADA'}"
-        txt_traza_sim.value = "Traza paso a paso:\n" + "\n".join(traza)
-        page.update()
-
-    tab_simulador = ft.Column([
-        ft.Text("Importación y Simulación de Autómatas", size=18, weight=ft.FontWeight.BOLD),
-        input_ruta_archivo,
-        ft.Button("Cargar Autómata", on_click=cargar_archivo),
-        txt_info_automata,
-        txt_tabla_transiciones,
-        ft.Divider(),
-        ft.Text("Simulación Paso a Paso", size=18, weight=ft.FontWeight.BOLD),
-        input_cadena_sim,
-        ft.Button("Simular Cadena", on_click=simular_cadena),
-        txt_resultado_sim,
-        txt_traza_sim
-    ])
-
-    tabs = ft.Tabs(
-        selected_index=0,
-        animation_duration=300,
-        tabs=[
-            ft.Tab(
-                text="Lenguajes",
-                content=tab_lenguajes,
-            ),
-            ft.Tab(
-                text="Simulador AFND/AFD",
-                content=tab_simulador,
-            ),
+    # Componentes de interfaz
+    status_text = ft.Text("No hay autómata cargado", color=ft.Colors.GREY_400)
+    
+    # -------------------------------------------------------------------
+    # Tab 1: Carga y Simulación Directa
+    # -------------------------------------------------------------------
+    input_string = ft.TextField(label="Cadena a evaluar", width=300)
+    sim_result = ft.Text(weight=ft.FontWeight.BOLD)
+    sim_table = ft.DataTable(
+        columns=[
+            ft.DataColumn(ft.Text("Paso / Símbolo")),
+            ft.DataColumn(ft.Text("Transición Directa")),
+            ft.DataColumn(ft.Text("Estados Activos (con λ-clausura)")),
         ],
-        expand=1,
+        rows=[]
     )
 
-    page.add(tabs)
+    def on_simulate(e):
+        if not current_automata[0]:
+            sim_result.value = "Error: Carga un autómata primero."
+            sim_result.color = ft.Colors.RED
+            page.update()
+            return
 
-ft.run(main)
+        word = input_string.value or ""
+        accepted, history = current_automata[0].simulate_direct(word)
+        
+        sim_result.value = f"Resultado: {'¡ACEPTADA!' if accepted else 'RECHAZADA'}"
+        sim_result.color = ft.Colors.GREEN if accepted else ft.Colors.RED
+
+        sim_table.rows.clear()
+        for step, (sym, step_st, closure_st) in enumerate(history):
+            st_str = "{" + ", ".join(sorted(step_st)) + "}" if step_st else "∅"
+            cl_str = "{" + ", ".join(sorted(closure_st)) + "}" if closure_st else "∅"
+            sim_table.rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(f"Paso {step}: '{sym}'")),
+                    ft.DataCell(ft.Text(st_str)),
+                    ft.DataCell(ft.Text(cl_str)),
+                ])
+            )
+        page.update()
+
+    # -------------------------------------------------------------------
+    # Tab 2: Transformaciones (Subconjuntos, Minimización, Sin λ)
+    # -------------------------------------------------------------------
+    transform_info = ft.Markdown()
+    
+    def on_run_subset(e):
+        if not current_automata[0]:
+            return
+        dfa, table_log = current_automata[0].subset_construction()
+        
+        log_md = "### Tabla de Construcción de Subconjuntos (AFN -> AFD)\n\n"
+        log_md += "| Estado AFD | Símbolo | Subconjunto Alcanzado |\n|---|---|---|\n"
+        for src, sym, dst in table_log:
+            src_str = "{" + ", ".join(src) + "}"
+            dst_str = "{" + ", ".join(dst) + "}" if dst else "∅"
+            log_md += f"| `{src_str}` | `{sym}` | `{dst_str}` |\n"
+        
+        log_md += f"\n**AFD Resultante:** {len(dfa.states)} estados. Inicial: `{dfa.initial_state}`, Finales: `{dfa.final_states}`"
+        transform_info.value = log_md
+        page.update()
+
+    def on_run_minimize(e):
+        if not current_automata[0]:
+            return
+        dfa_min = current_automata[0].minimize()
+        
+        log_md = "### Minimización de AFD (Algoritmo de Hopcroft)\n\n"
+        log_md += f"* **Estados del autómata original:** {len(current_automata[0].states)}\n"
+        log_md += f"* **Estados del AFD mínimo:** {len(dfa_min.states)}\n"
+        log_md += f"* **Estado Inicial:** `{dfa_min.initial_state}`\n"
+        log_md += f"* **Estados Finales:** `{dfa_min.final_states}`\n\n"
+        log_md += "#### Transiciones del AFD Mínimo:\n"
+        for st, trans in dfa_min.transitions.items():
+            for sym, targets in trans.items():
+                log_md += f"- `{st}` -- `{sym}` --> `{list(targets)[0]}`\n"
+        
+        transform_info.value = log_md
+        page.update()
+
+    # -------------------------------------------------------------------
+    # Tab 3: Carga Masiva desde Archivo TXT
+    # -------------------------------------------------------------------
+    file_path_input = ft.TextField(label="Ruta del archivo de cadenas (.txt)", width=400, value="cadenas.txt")
+    batch_results_table = ft.DataTable(
+        columns=[
+            ft.DataColumn(ft.Text("Cadena")),
+            ft.DataColumn(ft.Text("Resultado")),
+        ],
+        rows=[]
+    )
+
+    def on_run_batch(e):
+        if not current_automata[0]:
+            return
+        path = file_path_input.value
+        if not os.path.exists(path):
+            status_text.value = f"Archivo no encontrado: {path}"
+            status_text.color = ft.Colors.RED
+            page.update()
+            return
+
+        results = current_automata[0].validate_file(path)
+        batch_results_table.rows.clear()
+        for word, accepted in results:
+            batch_results_table.rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text(word if word != "" else "λ (vacía)")),
+                    ft.DataCell(ft.Text("ACEPTADA" if accepted else "RECHAZADA", 
+                                       color=ft.Colors.GREEN if accepted else ft.Colors.RED)),
+                ])
+            )
+        status_text.value = f"Validación masiva completada ({len(results)} cadenas)."
+        status_text.color = ft.Colors.GREEN
+        page.update()
+
+    # Autómata de demostración inicial
+    demo_transitions = {
+        'q0': {'lambda': {'q1'}},
+        'q1': {'a': {'q2'}, 'b': {'q1'}},
+        'q2': {'a': {'q2'}, 'b': {'q2'}}
+    }
+    current_automata[0] = Automata({'q0', 'q1', 'q2'}, {'a', 'b'}, demo_transitions, 'q0', {'q2'})
+    status_text.value = "Autómata de prueba cargado (Acepta cadenas que contienen 'a')"
+
+    # Layout Principal
+    tabs = ft.Tabs(
+        selected_index=0,
+        tabs=[
+            ft.Tab(
+                text="Simulación Directa",
+                content=ft.Column([
+                    ft.Row([input_string, ft.ElevatedButton("Simular", on_click=on_simulate)]),
+                    sim_result,
+                    sim_table
+                ], spacing=15)
+            ),
+            ft.Tab(
+                text="Transformaciones",
+                content=ft.Column([
+                    ft.Row([
+                        ft.ElevatedButton("Construcción de Subconjuntos", on_click=on_run_subset),
+                        ft.ElevatedButton("Minimizar AFD", on_click=on_run_minimize),
+                    ]),
+                    transform_info
+                ], spacing=15)
+            ),
+            ft.Tab(
+                text="Validación Masiva",
+                content=ft.Column([
+                    ft.Row([file_path_input, ft.ElevatedButton("Procesar Archivo", on_click=on_run_batch)]),
+                    batch_results_table
+                ], spacing=15)
+            )
+        ]
+    )
+
+    page.add(
+        ft.Text("Práctica 3 - Simulador e Integración de Autómatas", size=22, weight=ft.FontWeight.BOLD),
+        status_text,
+        tabs
+    )
+
+if __name__ == "__main__":
+    ft.app(target=main)
