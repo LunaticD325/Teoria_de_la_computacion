@@ -5,6 +5,13 @@ from typing import Dict, List, Set, Tuple, Optional
 from src.automata import Automata
 from src.visualizer_core import AutomatonLayout, StepSimulator
 
+# Compatibilidad entre Flet 0.2x y Flet 0.80+ / 1.0
+Icons = getattr(ft, "Icons", getattr(ft, "icons", None))
+Colors = getattr(ft, "Colors", getattr(ft, "colors", None))
+Alignment = getattr(ft, "Alignment", getattr(ft, "alignment", None))
+CENTER_ALIGN = getattr(Alignment, "CENTER", getattr(Alignment, "center", None))
+PrimaryButton = getattr(ft, "ElevatedButton", getattr(ft, "Button", None))
+
 
 class AutomatonVisualizerWidget(ft.Column):
     """Widget interactivo con lienzo Flet puro para dibujar y simular autómatas paso a paso."""
@@ -20,15 +27,14 @@ class AutomatonVisualizerWidget(ft.Column):
         self.dragging_state: Optional[str] = None
 
         self.active_states: Set[str] = set()
-        self.active_edges: Set[Tuple[str, str]] = set()  # pares (u, v) iluminados
+        self.active_edges: Set[Tuple[str, str]] = set()
 
-        # Controles de simulación
         self.chain_input = ft.TextField(label="Cadena a simular paso a paso", width=260, dense=True)
-        self.btn_load_chain = ft.ElevatedButton("Cargar cadena", icon=ft.icons.PLAY_ARROW, on_click=self._on_load_chain)
-        self.btn_prev = ft.IconButton(icon=ft.icons.SKIP_PREVIOUS, tooltip="Paso anterior", on_click=self._on_prev, disabled=True)
-        self.btn_next = ft.IconButton(icon=ft.icons.SKIP_NEXT, tooltip="Siguiente paso", on_click=self._on_next, disabled=True)
-        self.btn_reset = ft.IconButton(icon=ft.icons.REPLAY, tooltip="Reiniciar", on_click=self._on_reset, disabled=True)
-        self.btn_relayout = ft.OutlinedButton("Reordenar nodos", icon=ft.icons.REFRESH, on_click=self._on_relayout)
+        self.btn_load_chain = PrimaryButton("Cargar cadena", icon=Icons.PLAY_ARROW, on_click=self._on_load_chain)
+        self.btn_prev = ft.IconButton(icon=Icons.SKIP_PREVIOUS, tooltip="Paso anterior", on_click=self._on_prev, disabled=True)
+        self.btn_next = ft.IconButton(icon=Icons.SKIP_NEXT, tooltip="Siguiente paso", on_click=self._on_next, disabled=True)
+        self.btn_reset = ft.IconButton(icon=Icons.REPLAY, tooltip="Reiniciar", on_click=self._on_reset, disabled=True)
+        self.btn_relayout = ft.OutlinedButton("Reordenar nodos", icon=Icons.REFRESH, on_click=self._on_relayout)
 
         self.step_info = ft.Text("Cargue o genere un autómata para visualizarlo.", size=13, weight=ft.FontWeight.W_500)
         self.verdict_badge = ft.Text("", size=14, weight=ft.FontWeight.BOLD)
@@ -39,13 +45,16 @@ class AutomatonVisualizerWidget(ft.Column):
             height=self.layout.height,
         )
 
+        canvas_bg = Colors.SURFACE_CONTAINER_HIGHEST if hasattr(Colors, "SURFACE_CONTAINER_HIGHEST") else Colors.BLUE_GREY_900
+        border_obj = ft.Border.all(1, Colors.OUTLINE) if hasattr(ft, "Border") else ft.border.all(1, Colors.OUTLINE)
+
         self.gesture_detector = ft.GestureDetector(
             content=ft.Container(
                 content=self.canvas,
                 width=self.layout.width,
                 height=self.layout.height,
-                bgcolor=ft.colors.SURFACE_VARIANT,
-                border=ft.border.all(1, ft.colors.OUTLINE),
+                bgcolor=canvas_bg,
+                border=border_obj,
                 border_radius=8,
             ),
             on_pan_start=self._on_pan_start,
@@ -174,10 +183,10 @@ class AutomatonVisualizerWidget(ft.Column):
         if st["is_final_step"]:
             if st["accepted"]:
                 self.verdict_badge.value = "✔ CADENA ACEPTADA"
-                self.verdict_badge.color = ft.colors.GREEN_400
+                self.verdict_badge.color = Colors.GREEN_400
             else:
                 self.verdict_badge.value = "✘ CADENA RECHAZADA"
-                self.verdict_badge.color = ft.colors.RED_400
+                self.verdict_badge.color = Colors.RED_400
         else:
             self.verdict_badge.value = ""
 
@@ -236,9 +245,9 @@ class AutomatonVisualizerWidget(ft.Column):
             start_x = ix - r - 28.0
             end_x = ix - r - 2.0
             shapes.append(
-                cv.Line(start_x, iy, end_x, iy, paint=ft.Paint(color=ft.colors.CYAN_400, stroke_width=2.5))
+                cv.Line(start_x, iy, end_x, iy, paint=ft.Paint(color=Colors.CYAN_400, stroke_width=2.5))
             )
-            self._draw_arrowhead(shapes, end_x, iy, 0.0, ft.colors.CYAN_400)
+            self._draw_arrowhead(shapes, end_x, iy, 0.0, Colors.CYAN_400)
 
         # 2. Aristas (transiciones)
         for (u, v), symbols in grouped.items():
@@ -246,7 +255,7 @@ class AutomatonVisualizerWidget(ft.Column):
                 continue
             label = ", ".join(symbols)
             is_active = (u, v) in self.active_edges
-            edge_color = ft.colors.AMBER_400 if is_active else ft.colors.ON_SURFACE_VARIANT
+            edge_color = Colors.AMBER_400 if is_active else Colors.GREY_300
             stroke_w = 3.0 if is_active else 1.6
             paint = ft.Paint(color=edge_color, stroke_width=stroke_w, style=ft.PaintingStyle.STROKE)
 
@@ -254,7 +263,6 @@ class AutomatonVisualizerWidget(ft.Column):
             x2, y2 = positions[v]
 
             if u == v:
-                # Auto-ciclo sobre el mismo estado (bucle superior)
                 loop_top = y1 - r - 38.0
                 c1x, c1y = x1 - 24.0, loop_top
                 c2x, c2y = x1 + 24.0, loop_top
@@ -273,10 +281,10 @@ class AutomatonVisualizerWidget(ft.Column):
                 self._draw_arrowhead(shapes, ex, ey, math.pi / 2.5, edge_color)
                 shapes.append(
                     cv.Text(
-                        x=x1,
-                        y=loop_top - 6.0,
-                        text=label,
-                        alignment=ft.alignment.center,
+                        x1,
+                        loop_top - 6.0,
+                        label,
+                        alignment=CENTER_ALIGN,
                         style=ft.TextStyle(size=12, weight=ft.FontWeight.BOLD, color=edge_color),
                     )
                 )
@@ -287,7 +295,6 @@ class AutomatonVisualizerWidget(ft.Column):
                 if dist < 1e-3:
                     continue
                 ux, uy = dx / dist, dy / dist
-                # Vector perpendicular para separar aristas bidireccionales u <-> v
                 px, py = -uy, ux
                 has_reverse = (v, u) in grouped
                 curve_offset = 28.0 if has_reverse else 0.0
@@ -295,7 +302,6 @@ class AutomatonVisualizerWidget(ft.Column):
                 mid_x = (x1 + x2) / 2.0 + px * curve_offset
                 mid_y = (y1 + y2) / 2.0 + py * curve_offset
 
-                # Puntos de inicio y fin en el borde de cada círculo
                 ang_start = math.atan2(mid_y - y1, mid_x - x1)
                 ang_end = math.atan2(y2 - mid_y, x2 - mid_x)
 
@@ -319,15 +325,14 @@ class AutomatonVisualizerWidget(ft.Column):
 
                 self._draw_arrowhead(shapes, ex, ey, ang_end, edge_color)
 
-                # Etiqueta desplazada ligeramente del centro de la curva
                 lbl_x = (x1 + x2) / 2.0 + px * (curve_offset * 0.65 + 12.0)
                 lbl_y = (y1 + y2) / 2.0 + py * (curve_offset * 0.65 + 12.0)
                 shapes.append(
                     cv.Text(
-                        x=lbl_x,
-                        y=lbl_y,
-                        text=label,
-                        alignment=ft.alignment.center,
+                        lbl_x,
+                        lbl_y,
+                        label,
+                        alignment=CENTER_ALIGN,
                         style=ft.TextStyle(size=12, weight=ft.FontWeight.BOLD, color=edge_color),
                     )
                 )
@@ -337,8 +342,8 @@ class AutomatonVisualizerWidget(ft.Column):
             is_active = state in self.active_states
             is_final = state in self.automata.final_states
 
-            fill_color = ft.colors.AMBER_700 if is_active else ft.colors.BLUE_GREY_900
-            border_color = ft.colors.AMBER_300 if is_active else ft.colors.LIGHT_BLUE_300
+            fill_color = Colors.AMBER_700 if is_active else Colors.BLUE_GREY_900
+            border_color = Colors.AMBER_300 if is_active else Colors.LIGHT_BLUE_300
 
             shapes.append(
                 cv.Circle(
@@ -368,11 +373,11 @@ class AutomatonVisualizerWidget(ft.Column):
 
             shapes.append(
                 cv.Text(
-                    x=sx,
-                    y=sy,
-                    text=state,
-                    alignment=ft.alignment.center,
-                    style=ft.TextStyle(size=12, weight=ft.FontWeight.BOLD, color=ft.colors.WHITE),
+                    sx,
+                    sy,
+                    state,
+                    alignment=CENTER_ALIGN,
+                    style=ft.TextStyle(size=12, weight=ft.FontWeight.BOLD, color=Colors.WHITE),
                 )
             )
 
