@@ -18,7 +18,7 @@
 3. **Práctica 5 - Formas Normales (Chomsky/Greibach) y Visualizador Gráfico**
    * [Ejercicio 1: Forma Normal de Chomsky con JFLAP](docs/practica5/01-forma-normal-chomsky.md)
    * [Ejercicio 2: Forma Normal de Greibach y Forma de Backus-Naur](docs/practica5/02-greibach-bnf.md)
-   * [Ejercicio 3: Visualización de Autómatas y Simulación Gráfica en Flet](docs/practica5/03-visualizador-software.md)
+   * [Ejercicio 3: Visualización de Autómatas y Simulación Gráfica en Flet](docs/practica5/03-visualizador-flet.md)
 
 ---
 
