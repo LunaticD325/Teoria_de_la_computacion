@@ -3,7 +3,8 @@ import xml.etree.ElementTree as ET
 from src.automata import Automata
 from src.regex_parser import regex_to_automata
 from src.automata_to_regex import StateEliminationRegex
-from src.validators import SystemValidator, VALIDATOR_PATTERNS
+from src.validators import SystemValidator
+from src.canvas_drawer import AutomatonVisualizerWidget
 
 
 def parse_jff_content(content_str: str) -> Automata:
@@ -59,12 +60,14 @@ def parse_jff_content(content_str: str) -> Automata:
     )
 
 
-def build_sim_tab():
+def build_sim_and_conversions_tab():
+    """Pestaña unificada: Carga .jff, conversiones Práctica 3 y visualización doble (Original vs Convertido)."""
     file_picker = ft.FilePicker()
-    status_text = ft.Text("Cargue un archivo .jff para iniciar", color=ft.colors.GREY_400)
-    input_chain = ft.TextField(label="Cadena a simular", expand=True)
-    sim_result = ft.Text(weight=ft.FontWeight.BOLD)
+    status_text = ft.Text("Cargue un archivo .jff para visualizarlo y convertirlo", color=ft.colors.GREY_400)
     current_automaton = {"obj": None}
+
+    vis_original = AutomatonVisualizerWidget(title="1. Autómata Original")
+    vis_converted = AutomatonVisualizerWidget(title="2. Autómata Transformado (Práctica 3)")
 
     def on_file_result(e: ft.FilePickerResultEvent):
         if e.files and len(e.files) > 0:
@@ -73,8 +76,9 @@ def build_sim_tab():
                     content = f.read()
                 aut = parse_jff_content(content)
                 current_automaton["obj"] = aut
-                status_text.value = f"Cargado: {e.files[0].name} ({len(aut.states)} estados)"
+                status_text.value = f"Cargado: {e.files[0].name} ({aut.tipo}, {len(aut.states)} estados)"
                 status_text.color = ft.colors.GREEN_400
+                vis_original.set_automata(aut, title=f"1. Autómata Original ({e.files[0].name})")
             except Exception as err:
                 status_text.value = f"Error al cargar JFF: {str(err)}"
                 status_text.color = ft.colors.RED_400
@@ -82,16 +86,21 @@ def build_sim_tab():
 
     file_picker.on_result = on_file_result
 
-    def on_simulate(e):
-        if not current_automaton["obj"]:
-            sim_result.value = "Primero cargue un autómata (.jff)"
-            sim_result.color = ft.colors.RED_400
-        else:
-            acc, path = current_automaton["obj"].simulate_direct(input_chain.value)
-            res_str = "ACEPTADA" if acc else "RECHAZADA"
-            sim_result.value = f"Resultado: {res_str} | Camino: {' -> '.join(path)}"
-            sim_result.color = ft.colors.GREEN_400 if acc else ft.colors.RED_400
-        sim_result.update()
+    def on_remove_lambda(e):
+        if current_automaton["obj"]:
+            afn = current_automaton["obj"].remove_lambda_transitions()
+            vis_converted.set_automata(afn, title="2. AFN sin transiciones λ")
+
+    def on_subset(e):
+        if current_automaton["obj"]:
+            afd, _ = current_automaton["obj"].subset_construction()
+            vis_converted.set_automata(afd, title="2. AFD (Construcción de Subconjuntos)")
+
+    def on_minimize(e):
+        if current_automaton["obj"]:
+            afd, _ = current_automaton["obj"].subset_construction()
+            afd_min = afd.minimize()
+            vis_converted.set_automata(afd_min, title="2. AFD Mínimo (Hopcroft)")
 
     return ft.Column(
         [
@@ -101,38 +110,41 @@ def build_sim_tab():
                     ft.ElevatedButton(
                         "Cargar .jff",
                         icon=ft.icons.UPLOAD_FILE,
-                        on_click=lambda _: file_picker.pick_files(
-                            allowed_extensions=["jff"]
-                        ),
+                        on_click=lambda _: file_picker.pick_files(allowed_extensions=["jff"]),
                     ),
+                    ft.OutlinedButton("Eliminar λ", on_click=on_remove_lambda),
+                    ft.OutlinedButton("Subconjuntos (AFD)", on_click=on_subset),
+                    ft.OutlinedButton("Minimizar AFD", on_click=on_minimize),
                     status_text,
-                ]
+                ],
+                wrap=True,
             ),
-            ft.Row(
-                [
-                    input_chain,
-                    ft.ElevatedButton("Simular", on_click=on_simulate),
-                ]
-            ),
-            sim_result,
-        ]
+            ft.Divider(),
+            vis_original,
+            ft.Divider(),
+            vis_converted,
+        ],
+        spacing=12,
     )
 
 
 def build_regex_to_automata_tab():
-    regex_input = ft.TextField(
-        label="Expresión Regular (Ej. (a+b)*ab)", expand=True
-    )
+    """Práctica 4 + Práctica 5: Muestra visualmente el AFN-lambda de Thompson y el AFD Mínimo."""
+    regex_input = ft.TextField(label="Expresión Regular (Ej. (a+b)*ab)", expand=True)
     result_text = ft.Text(weight=ft.FontWeight.BOLD)
+
+    vis_thompson = AutomatonVisualizerWidget(title="1. AFN-λ (Construcción de Thompson)")
+    vis_dfa_min = AutomatonVisualizerWidget(title="2. AFD Mínimo Equivalente")
 
     def on_convert(e):
         try:
             afn, dfa_min = regex_to_automata(regex_input.value)
             result_text.value = (
-                f"AFN-λ construido con {len(afn.states)} estados.\n"
-                f"AFD Mínimo generado con {len(dfa_min.states)} estados."
+                f"AFN-λ: {len(afn.states)} estados | AFD Mínimo: {len(dfa_min.states)} estados."
             )
             result_text.color = ft.colors.GREEN_400
+            vis_thompson.set_automata(afn, title=f"1. AFN-λ de Thompson ({regex_input.value})")
+            vis_dfa_min.set_automata(dfa_min, title=f"2. AFD Mínimo ({regex_input.value})")
         except Exception as err:
             result_text.value = f"Error en la expresión: {str(err)}"
             result_text.color = ft.colors.RED_400
@@ -141,20 +153,18 @@ def build_regex_to_automata_tab():
     return ft.Column(
         [
             ft.Text(
-                "Conversión de ER a Autómata (Construcción de Thompson)",
+                "Conversión de ER a Autómata y Visualización (Prácticas 4 y 5)",
                 size=18,
                 weight=ft.FontWeight.BOLD,
             ),
-            ft.Row(
-                [
-                    regex_input,
-                    ft.ElevatedButton(
-                        "Generar Autómatas", on_click=on_convert
-                    ),
-                ]
-            ),
+            ft.Row([regex_input, ft.ElevatedButton("Generar y Dibujar", on_click=on_convert)]),
             result_text,
-        ]
+            ft.Divider(),
+            vis_thompson,
+            ft.Divider(),
+            vis_dfa_min,
+        ],
+        spacing=12,
     )
 
 
@@ -162,6 +172,7 @@ def build_automata_to_regex_tab():
     file_picker = ft.FilePicker()
     status_text = ft.Text("Cargue un archivo .jff para extraer su ER", color=ft.colors.GREY_400)
     regex_result = ft.Text(size=16, weight=ft.FontWeight.BOLD)
+    vis_aut = AutomatonVisualizerWidget(title="Autómata Cargado")
 
     def on_file_result(e: ft.FilePickerResultEvent):
         if e.files and len(e.files) > 0:
@@ -175,6 +186,7 @@ def build_automata_to_regex_tab():
                 status_text.color = ft.colors.GREEN_400
                 regex_result.value = f"Expresión Regular Obtenida: {regex_str}"
                 regex_result.color = ft.colors.BLUE_400
+                vis_aut.set_automata(aut, title=f"Autómata: {e.files[0].name}")
             except Exception as err:
                 status_text.value = f"Error al procesar: {str(err)}"
                 status_text.color = ft.colors.RED_400
@@ -197,15 +209,16 @@ def build_automata_to_regex_tab():
                     ft.ElevatedButton(
                         "Cargar .jff para ER",
                         icon=ft.icons.UPLOAD_FILE,
-                        on_click=lambda _: file_picker.pick_files(
-                            allowed_extensions=["jff"]
-                        ),
+                        on_click=lambda _: file_picker.pick_files(allowed_extensions=["jff"]),
                     ),
                     status_text,
                 ]
             ),
             regex_result,
-        ]
+            ft.Divider(),
+            vis_aut,
+        ],
+        spacing=12,
     )
 
 
@@ -249,31 +262,22 @@ def build_validators_tab():
                 weight=ft.FontWeight.BOLD,
             ),
             validator_dropdown,
-            ft.Row(
-                [
-                    input_text,
-                    ft.ElevatedButton("Validar Cadena", on_click=on_validate),
-                ]
-            ),
+            ft.Row([input_text, ft.ElevatedButton("Validar Cadena", on_click=on_validate)]),
             output_text,
         ]
     )
 
 
 def main(page: ft.Page):
-    page.title = "Teoría de la Computación - Software Interactivo"
+    page.title = "Teoría de la Computación - Software Interactivo (Prácticas 3, 4 y 5)"
     page.scroll = ft.ScrollMode.AUTO
 
     tabs = ft.Tabs(
         selected_index=0,
         tabs=[
-            ft.Tab(text="Simulador .jff", content=build_sim_tab()),
-            ft.Tab(
-                text="ER -> Autómata", content=build_regex_to_automata_tab()
-            ),
-            ft.Tab(
-                text="Autómata -> ER", content=build_automata_to_regex_tab()
-            ),
+            ft.Tab(text="Visualizador & Conversiones (.jff)", content=build_sim_and_conversions_tab()),
+            ft.Tab(text="ER -> Autómata (Visual)", content=build_regex_to_automata_tab()),
+            ft.Tab(text="Autómata -> ER", content=build_automata_to_regex_tab()),
             ft.Tab(text="Validadores", content=build_validators_tab()),
         ],
         expand=1,
